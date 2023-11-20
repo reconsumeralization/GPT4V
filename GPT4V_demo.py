@@ -257,7 +257,7 @@ async def create_graph( g,
             st.write("Graph has been cleaned")
 
     for i, b in enumerate(chatOutputs,1):
-        continue
+        # continue
         belief = json.loads(b.choices[0].message.content)
         
         name=belief.pop("subject")
