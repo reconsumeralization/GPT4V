@@ -1,0 +1,12 @@
+openai==0.28
+transformers[torch]
+pillow
+requests
+tdqm
+python-dotenv
+ipykernel
+tiktoken
+nltk
+py2neo==2021.2.4
+neo4jupyter
+streamlit
