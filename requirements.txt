@@ -10,3 +10,4 @@ nltk
 py2neo==2021.2.4
 neo4jupyter
 streamlit
+matplotlib
