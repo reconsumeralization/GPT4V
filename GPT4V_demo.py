@@ -150,7 +150,9 @@ async def create_graph( g,
                               {"role": "user", "content": requestMessage}]
     )
     objects_in_image = objects.choices[0].message.content[1:-1].split(", ")
+    
     if DEBUG:
+        st.write("WARNING: results are not deterministic!")
         st.write("Objects in image:")
         st.write(objects_in_image)
     
