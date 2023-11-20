@@ -352,7 +352,7 @@ def main():
 
     import asyncio
     # image_path = "data/nice_convertible.jpg"
-    image_path = "Enjoying-convertible-car.jpg"
+    image_path = "data/Enjoying-convertible-car.jpg"
     objects_in_image, beliefs = asyncio.run(create_graph(g, 
                                             image_path=image_path, 
                                             plot_image=True,
