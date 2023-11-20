@@ -1,3 +1,4 @@
+# python 3.11.5
 openai==0.28
 transformers[torch]
 pillow
