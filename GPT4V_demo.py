@@ -351,8 +351,10 @@ def main():
     st.write("Graph has been cleaned")
 
     import asyncio
+    # image_path = "data/nice_convertible.jpg"
+    image_path = "Enjoying-convertible-car.jpg"
     objects_in_image, beliefs = asyncio.run(create_graph(g, 
-                                            image_path="data/Enjoying-convertible-car.jpg", 
+                                            image_path=image_path, 
                                             plot_image=True,
                                             delete_graph=True,
                                             DEBUG=True
@@ -383,3 +385,4 @@ if __name__ == '__main__':
 #    streamlit run GPT4V_demo.py --server.allowRunOnSave True
 # we must run it from the root folder, not from the src folder because 
 # that's what streamlit will do
+
