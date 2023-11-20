@@ -1,7 +1,7 @@
 # python 3.11.5
+pillow
 openai==0.28
 transformers[torch]
-pillow
 requests
 tdqm
 python-dotenv
