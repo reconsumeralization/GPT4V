@@ -61,6 +61,23 @@ def check_keys():
     
     return 
 
+def examples():
+    
+    st.write("Here are some examples of knowledge graphs that we created")
+    st.image("images/node_sunglasses.png", use_column_width=True)
+    st.image("images/node_convertible.png", use_column_width=True)
+    st.image("images/node_road.png", use_column_width=True)
+    st.image("images/node_view.png", use_column_width=True)
+    st.image("images/node_sunglasses2.png", use_column_width=True)
+    st.image("images/node_scarf.png", use_column_width=True)
+    st.image("images/node_colorful.png", use_column_width=True)
+    st.image("images/node_green.png", use_column_width=True)
+    st.image("images/node_tinted.png", use_column_width=True)
+    st.image("images/node_convertible2.png", use_column_width=True)
+    st.image("images/node_old.png", use_column_width=True)
+    st.image("images/node_rolling.png", use_column_width=True)
+    st.write("Notice the fields 'objective' and 'condition' under 'Node Properties' on the right")
+
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
@@ -330,54 +347,70 @@ def main():
     st.image('images/NO LIMITS logo.png', use_column_width=True)
     st.title("Team NoLimits")
 
-    check_keys()
+    codebox = st.empty()
+    code = codebox.text_input("Enter your access code here", 
+                                value="", 
+                                placeholder="........",
+                                key="1")
 
-    # I setup a free Neo4J instance on Aura, and I'm using the Python driver to connect to it
-    Neo4j_config = configparser.ConfigParser()
-    Neo4j_config.read('neo4j_config.ini')
-    Neo4j_config['DEFAULT']["pw"] = st.secrets["secrets"]['NEO4J_AURA_PW']
+    if hash(code) == hash(environ["REAL_CODE"]):
+        # let's clear the code
+        time.sleep(0.5)
+        # code to clear box from https://discuss.streamlit.io/t/clear-text-input/18884/4
+        codebox.text_input("Enter your access code here", 
+                            value="", 
+                            placeholder="KEY HIDDEN",
+                            key="2")
+        check_keys()
 
-    g = Neo4jGraph(showstatus=True, **Neo4j_config['DEFAULT'])
+        # I setup a free Neo4J instance on Aura, and I'm using the Python driver to connect to it
+        Neo4j_config = configparser.ConfigParser()
+        Neo4j_config.read('neo4j_config.ini')
+        Neo4j_config['DEFAULT']["pw"] = st.secrets["secrets"]['NEO4J_AURA_PW']
 
-    # in case of error, check your config.ini file
+        g = Neo4jGraph(showstatus=True, **Neo4j_config['DEFAULT'])
 
-    # Instructions to see the graph in Neo4J Browser
-    # go to 
-    # https://workspace-preview.neo4j.io/workspace/query?ntid=auth0%7C631bb4216f68981ab949290b
-    # run the cypher query: 
-    # MATCH (n) RETURN n     to see all nodes
-    
-    
-    g.deleteAllNodes(DEBUG=True)
-    assert g.nodesNb == 0
-    st.write("Graph has been cleaned")
+        # in case of error, check your config.ini file
 
-    import asyncio
-    # image_path = "data/nice_convertible.jpg"
-    image_path = "data/Enjoying-convertible-car.jpg"
-    objects_in_image, beliefs = asyncio.run(create_graph(g, 
-                                            image_path=image_path, 
-                                            plot_image=True,
-                                            delete_graph=True,
-                                            DEBUG=True
-    ))
-    # st.write('\n'.join(beliefs))
-    st.write("Neo4J graph has been created! See it online!")
-    
-    st.image("images/node_sunglasses.png", use_column_width=True)
-    st.image("images/node_convertible.png", use_column_width=True)
-    st.image("images/node_road.png", use_column_width=True)
-    st.image("images/node_view.png", use_column_width=True)
-    st.image("images/node_sunglasses2.png", use_column_width=True)
-    st.image("images/node_scarf.png", use_column_width=True)
-    st.image("images/node_colorful.png", use_column_width=True)
-    st.image("images/node_green.png", use_column_width=True)
-    st.image("images/node_tinted.png", use_column_width=True)
-    st.image("images/node_convertible2.png", use_column_width=True)
-    st.image("images/node_old.png", use_column_width=True)
-    st.image("images/node_rolling.png", use_column_width=True)
-    st.write("Notice the fields 'objective' and 'condition' under 'Node Properties' on the right")
+        # Instructions to see the graph in Neo4J Browser
+        # go to 
+        # https://workspace-preview.neo4j.io/workspace/query?ntid=auth0%7C631bb4216f68981ab949290b
+        # run the cypher query: 
+        # MATCH (n) RETURN n     to see all nodes
+        
+        g.deleteAllNodes(DEBUG=True)
+        assert g.nodesNb == 0
+        st.write("Graph has been cleaned")
 
+        import asyncio
+        # image_path = "data/nice_convertible.jpg"
+        image_path = "data/Enjoying-convertible-car.jpg"
+        objects_in_image, beliefs = asyncio.run(create_graph(g, 
+                                                image_path=image_path, 
+                                                plot_image=True,
+                                                delete_graph=True,
+                                                DEBUG=True
+        ))
+        # st.write('\n'.join(beliefs))
+        st.write("Neo4J graph has been created! See it online!")
+        examples()
+        
+    else:
+        st.write("Access code is invalid")
+        st.write("Please contact the team to get a valid access code.")
+        st.write("In the meantime, here is a recorded demo")
+        
+        time.sleep(2)
+        st.image("images/streamlit_1.png", use_column_width=True)
+        time.sleep(4)
+        st.image("images/streamlit_2.png", use_column_width=True)
+        time.sleep(4)
+        st.image("images/streamlit_3.png", use_column_width=True)
+        
+        examples()   
+        st.write("Notice how the fields 'objective' and 'condition' \
+                 under 'Node Properties' on the right are spot on!")
+        st.stop()
 
 if __name__ == '__main__':
 
