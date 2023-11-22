@@ -408,8 +408,7 @@ def main():
         st.image("images/streamlit_3.png", use_column_width=True)
         
         examples()   
-        st.write("Notice how the fields 'objective' and 'condition' \
-                 under 'Node Properties' on the right are spot on!")
+        st.write("Notice how they are spot on!")
         st.stop()
 
 if __name__ == '__main__':
