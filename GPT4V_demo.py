@@ -344,7 +344,10 @@ async def create_graph( g,
     return objects_in_image, beliefs
 
 def main():
-    st.image('images/NO LIMITS logo.png', use_column_width=True)
+    
+    _, cent_co,_,_,_ = st.columns(5)  # to help center the logo
+    with cent_co:
+        st.image('images/NO LIMITS logo.png', width=400)
     st.title("Team NoLimits")
 
     codebox = st.empty()
