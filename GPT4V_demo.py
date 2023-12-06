@@ -9,6 +9,7 @@ import toml
 import pickle
 from pathlib import Path
 import time
+import hashlib
 
 import json
 import base64
@@ -356,9 +357,11 @@ def main():
                                 placeholder="........",
                                 key="1")
 
-    if hash(code) == hash(environ["REAL_CODE"]):
+    if hashlib.sha256(code.encode()).hexdigest() == hashlib.sha256(environ["REAL_CODE"].encode()).hexdigest():
         # let's clear the code
         time.sleep(0.5)
+        st.write("Access code is validXxXXX")
+        st.stop()
         # code to clear box from https://discuss.streamlit.io/t/clear-text-input/18884/4
         codebox.text_input("Enter your access code here", 
                             value="", 
