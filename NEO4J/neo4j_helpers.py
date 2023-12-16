@@ -78,54 +78,50 @@ class Neo4jGraph:
         if not is_dataclass(nodedataclass):
             raise TypeError("Attempt to create a node with other type than dataclass")
 
-        else:
-            # let's convert to tuple in case user specified a single string
-            # also ('ab') is not a tuple, user should write ('ab',)
-            labels, properties = self._toTuple(nodedataclass.labels), nodedataclass.properties
-            labels_constraints = self._toTuple(nodedataclass.labels_constraints)
-            properties_constr = self._toTuple(nodedataclass.properties_constraints)
+        # let's convert to tuple in case user specified a single string
+        # also ('ab') is not a tuple, user should write ('ab',)
+        labels, properties = self._toTuple(nodedataclass.labels), nodedataclass.properties
+        labels_constraints = self._toTuple(nodedataclass.labels_constraints)
+        properties_constr = self._toTuple(nodedataclass.properties_constraints)
 
-            if set(labels_constraints) > set(labels):
-                raise KeyError("Constraints specified on non existing labels")
+        if set(labels_constraints) > set(labels):
+            raise KeyError("Constraints specified on non existing labels")
 
-            if set(properties_constr) > set(properties):
-                raise KeyError("Constraints specified on non existing properties")
+        if set(properties_constr) > set(properties):
+            raise KeyError("Constraints specified on non existing properties")
 
-            # let's create the property dictionaries using actual values of such properties
-            # we could have done this in each dataclass, but it would have been heavier
-            # and maybe the user changed the properties values after that
-            properties_constraints = {k: properties[k] for k in properties_constr}
+        # let's create the property dictionaries using actual values of such properties
+        # we could have done this in each dataclass, but it would have been heavier
+        # and maybe the user changed the properties values after that
+        properties_constraints = {k: properties[k] for k in properties_constr}
 
             # let's test if node is unique, according to constraints
             # do not use graph.exists because it tests the identity which is useless here
             # since we haven't even created the node inside the graph yet...
-            if len(labels_constraints) + len(properties_constraints):
-                match = self._nodeMatch(*labels_constraints, **properties_constraints)
-            else:
-                # if we don't specify any constraints, then we use
-                # all the labels and properties to find a duplicate
-                # TODO remove/modify this when we decide how to implement constraints
-                match = self._nodeMatch(*labels, **properties)
+        match = (
+            self._nodeMatch(*labels_constraints, **properties_constraints)
+            if len(labels_constraints) + len(properties_constraints)
+            else self._nodeMatch(*labels, **properties)
+        )
+        if match is None:
+            # we cannot user graph.merge here because it assumes ONE label only
+            self.graph.create(Node(*labels, **properties))
+            # graph.create does not return anything, so we have to use _NodeMatch again
+            node = self._nodeMatch(*labels, **properties)
 
-            if match is None:
-                # we cannot user graph.merge here because it assumes ONE label only
-                self.graph.create(Node(*labels, **properties))
-                # graph.create does not return anything, so we have to use _NodeMatch again
-                node = self._nodeMatch(*labels, **properties)
-
-                if DEBUG is True:
-                    print(f'New node {labels} created with ID =', node.identity)
-                return node  # useful to create a relation
-            else:
-                error_msg = bcolors.FAIL + bcolors.BOLD + \
+            if DEBUG is True:
+                print(f'New node {labels} created with ID =', node.identity)
+            return node  # useful to create a relation
+        else:
+            error_msg = bcolors.FAIL + bcolors.BOLD + \
                             f"Node {labels} already exists with ID = {match.identity}" + bcolors.END
-                if DEBUG is None:
-                    pass
-                elif DEBUG is True:
-                    print(error_msg)
-                else:
-                    raise Conflict(error_msg)
-                return match  # useful to create a relation
+            if DEBUG is None:
+                pass
+            elif DEBUG is True:
+                print(error_msg)
+            else:
+                raise Conflict(error_msg)
+            return match  # useful to create a relation
 
     @staticmethod
     def _toTuple(labels):
@@ -156,10 +152,7 @@ class Neo4jGraph:
         :param nodeID: the node ID
         :return: node object if there is a node with nodeID, otherwise None
         '''
-        if isinstance(nodeID, int):
-            return self.nodematcher.get(nodeID)
-        else:
-            return None
+        return self.nodematcher.get(nodeID) if isinstance(nodeID, int) else None
 
     def _getNodeID(self, *labels, **properties):
         # TODO: do we want to return ALL matching nodes and let user pick the one he wants?
@@ -188,18 +181,10 @@ class Neo4jGraph:
         :param all: if no labels or properties, returns all nodes
         :return: node object matching labels and properties, or None
         '''
-        # do not use graph.exists since it tests the identity
-        # which doesn't exist yet here since we want to find out
-        # if we can create a new node with those labels and properties
-
         if (len(labels)+len(properties)) == 0:
-            if all == False:
-                return None
-            else:
-                return self.nodematcher.match().all()
-        else:
-            nodes = self.nodematcher.match(*labels, **properties)
-            return nodes.first() if first_only else nodes
+            return None if all == False else self.nodematcher.match().all()
+        nodes = self.nodematcher.match(*labels, **properties)
+        return nodes.first() if first_only else nodes
 
     def relationsCount(self, startnode,
                        *relation_labels,
@@ -225,7 +210,7 @@ class Neo4jGraph:
 
         # py2neo doesn't allow multiple labels for relationships -> concatenation
         relation = self.joinLabels(relation_labels)
-        counter_name = relation + "__counter"
+        counter_name = f"{relation}__counter"
 
         matches  = self.relmatcher.match((startnode, endnode),
                                           r_type=relation,
@@ -266,8 +251,15 @@ class Neo4jGraph:
                                         r_type=relation,
                                         **properties).all()
 
-        return [(m.start_node, type(m).__name__, m.end_node,
-                 dict(m.end_node).get(type(m).__name__+'__counter',0) ) for m in matches]
+        return [
+            (
+                m.start_node,
+                type(m).__name__,
+                m.end_node,
+                dict(m.end_node).get(f'{type(m).__name__}__counter', 0),
+            )
+            for m in matches
+        ]
 
 
     def _processNode(self, source, nodeclass='Source'):
@@ -370,7 +362,7 @@ class Neo4jGraph:
             # there is already an identical relation between source and target
             # we don't count this attempt, just leave
             error_msg = f"Relationship '{relation}' already exists between nodes " \
-                        f"{source.identity} and node {target.identity}"
+                            f"{source.identity} and node {target.identity}"
             if DEBUG is None:
                 pass
             elif DEBUG is True:
@@ -384,7 +376,7 @@ class Neo4jGraph:
 
             if counting:
                 # user wants to count, so we add a counter the first time, and initialize it
-                counter_name = relation + "__counter"
+                counter_name = f"{relation}__counter"
                 _, target_properties = self.readNode(target)
                 # we create a key in the dictionary with the labels of the wanted relation, and set it to 0
                 target_properties.setdefault(counter_name, 0)
@@ -497,7 +489,7 @@ class Neo4jGraph:
                 elif isinstance(node[k], int) and isinstance(v, int):
                     node[k] = tuple(node[k])
                     v = (v,)
-                elif not (type(node[k]) == type(v)):
+                elif type(node[k]) != type(v):
                     raise TypeError("Type mismatch between current property and new value!")
 
                 node[k] += v
@@ -522,11 +514,7 @@ class Neo4jGraph:
         :return: nothing, constraint added/removed in place
         '''
         # TODO add constraints removal
-        if len(constraints) == 0:
-            label, property_key = ('User', 'display_name')
-        else:
-            label, property_key = constraints
-
+        label, property_key = constraints if constraints else ('User', 'display_name')
         if ADD:
             # TODO test if this constraint already exists
             self.graph.schema.create_uniqueness_constraint(label, property_key)
@@ -555,10 +543,7 @@ def Now(format="%m/%d/%Y, %H:%M:%S", as_string=True):
     :param format: the format to use for the time
     :return: a string with the current time
     '''
-    if as_string:
-        return dt.now().strftime(format)
-    else:
-        return dt.now()
+    return dt.now().strftime(format) if as_string else dt.now()
 
 
 def createNode(g, *labels, DEBUG=False,

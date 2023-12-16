@@ -114,7 +114,7 @@ async def create_graph( g,
 
     def prompt_image(prompt, image_path):
         base64_image = encode_image(image_path)
-        
+
         payload = {
             "model": "gpt-4-vision-preview",
             "messages": [
@@ -137,7 +137,7 @@ async def create_graph( g,
             "max_tokens": 300
         }
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-            
+
         return response 
 
     #%%
@@ -153,14 +153,14 @@ async def create_graph( g,
     # if DEBUG:
     #     st.write("Objects in image:")
     #     st.write(ans4.json()["choices"][0]["message"]["content"])
-    
+
     objectPrompt="""
     Find all the words between quotes in the following string and put them in a python string.
     Just output the string without any comment, start with ' and end with ], nothing else.
     Do not put quotes or double quotes around the words.
     """
     client = AsyncOpenAI(api_key=st.secrets["secrets"]["OPENAI_API_KEY"])
-    
+
     requestMessage = objectPrompt + '\n' + ans4.json()["choices"][0]["message"]["content"]
     objects = await client.chat.completions.create(
                     model="gpt-4",  # previous models, even GPT3.5 didn't work that well
@@ -168,12 +168,12 @@ async def create_graph( g,
                               {"role": "user", "content": requestMessage}]
     )
     objects_in_image = objects.choices[0].message.content[1:-1].split(", ")
-    
+
     if DEBUG:
         st.write("WARNING: results are not deterministic!")
         st.write("Objects in image:")
         st.write(objects_in_image)
-    
+
 
     #%%
     prompt3 = f""" 
@@ -193,14 +193,19 @@ async def create_graph( g,
     # if DEBUG:
     #     st.write(ans3.json()["choices"][0]["message"]["content"])
     #%%
-    beliefs = [f"belief {i}: "+ans for i,ans in enumerate(ans3.json()["choices"][0]["message"]["content"].split("\n"), 1)]
+    beliefs = [
+        f"belief {i}: {ans}"
+        for i, ans in enumerate(
+            ans3.json()["choices"][0]["message"]["content"].split("\n"), 1
+        )
+    ]
     if DEBUG:
         msg="Here are all the beliefs that GPT4V extracted from the image:"
         st.write(msg)
         # st.write("-"*len(msg))
         for b in beliefs:
             st.write(b)
-        
+
     #%%
     instructPrompt = """
     You are an expert in linguistics, semantic and you are trying to format the beliefs passed to you into a format that can be stored in a knowledge graph.
@@ -267,7 +272,7 @@ async def create_graph( g,
         formatted_beliefs[b["subject"]] = b
         if DEBUG:
             st.write(b)
-            
+
 
     #%%
     if delete_graph:
@@ -279,14 +284,14 @@ async def create_graph( g,
     for i, b in enumerate(chatOutputs,1):
         # continue
         belief = json.loads(b.choices[0].message.content)
-        
+
         name=belief.pop("subject")
         object = belief.pop("object")
         relation = belief.pop("action")
         if DEBUG:
             st.write(f"Now adding nodes to the graph for belief{i}:")
             st.write('\n'.join([name, relation, object, belief['objective'], belief['condition']]))
-        
+
         if name == "":
             continue
         try:
@@ -298,11 +303,11 @@ async def create_graph( g,
                                     # properties_constraints=('user_id',), 
                                     creation_timestamp = Now(),
                                     DEBUG=True)  # we can have the same subject appear several times
-            
+
         except:
             if DEBUG:
                 st.write(f"node not created for {name}")
-        
+
         if object == "":
             continue
         try:
@@ -319,7 +324,7 @@ async def create_graph( g,
         except:
             if DEBUG:
                 st.write(f"node not created for {object}")
-            
+
         if relation == "":
             continue
         try:
@@ -334,10 +339,10 @@ async def create_graph( g,
         except:
             if DEBUG:
                 st.write(f"relation not created for 'to {relation}'")
-        
+
         if DEBUG:
             st.write('-'*10)
-        
+
     if DEBUG:
         st.write("Nb of nodes =", g.nodesNb)
         st.write("="*50)
